@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mountain_car import MountainCar
 from mountain_car_animation import animate
-from ch13 import reinforce, reinforce_baseline, actor_critic_1step, actor_critic_et
+from ch13 import reinforce, reinforce_baseline, actor_critic_1step, actor_critic_et, actor_critic_et_cont, actor_critic_et_cont_cont_acts
 
 # import h5py
 
@@ -73,14 +73,11 @@ steps_run_ac_et = []
 # Animating the algorithmsr
 
 # traj_log_x = np.asarray(reinforce(alpha=4e-7)[0])
-# animate(traj_log_x[:, 0])
-
 # traj_log_x = np.asarray(reinforce_baseline(alpha_theta=4e-6, alpha_w=4e-3)[0])
-# animate(traj_log_x[:, 0])
-
 # traj_log_x = np.asarray(actor_critic_1step(alpha_theta=4e-6, alpha_w=4e-3)[0])
-# animate(traj_log_x[:, 0])
-
-traj_log_x = np.asarray(actor_critic_et(lambda_theta=.7, lambda_w=.7, alpha_theta=4e-6, alpha_w=4e-3)[0])
+# traj_log_x = np.asarray(actor_critic_et(lambda_theta=.7, lambda_w=.7, alpha_theta=4e-6, alpha_w=4e-3)[0])
+# traj_log_x = np.asarray(actor_critic_et_cont(lambda_theta=.7, lambda_w=.7, alpha_theta=4e-6, alpha_w=4e-3, alpha_r=4e-3)[0])
+traj_log_x = np.asarray(actor_critic_et_cont_cont_acts(lambda_theta_mu=.8, lambda_theta_sigma=.8, lambda_w=.8,
+                                   alpha_theta_mu=4e-6, alpha_theta_sigma=4e-6, alpha_w=4e-3, alpha_r=4e-3)[0])
 animate(traj_log_x[:, 0])
 #

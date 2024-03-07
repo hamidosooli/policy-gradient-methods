@@ -411,7 +411,7 @@ def actor_critic_et_cont(lambda_theta=.8, lambda_w=.8, alpha_theta=4e-6, alpha_w
 
         # keeping track of rewards, eligibility vectors, and states trajectory
         trajectory.append((next_x_t, next_x_t_dot))
-
+        # unnecessary for this algorithm
         if status:
             print('Episode finished in ' + str(tl + 1) + ' steps')
 
@@ -487,7 +487,7 @@ def actor_critic_et_cont_cont_acts(lambda_theta_mu=.8, lambda_theta_sigma=.8, la
 
         # keeping track of rewards, eligibility vectors, and states trajectory
         trajectory.append((next_x_t, next_x_t_dot))
-
+        # unnecessary for this algorithm
         if status:
             print('Episode finished in ' + str(tl + 1) + ' steps')
 

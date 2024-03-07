@@ -354,76 +354,72 @@ def actor_critic_et_cont(lambda_theta=.8, lambda_w=.8, alpha_theta=4e-6, alpha_w
     rewards_log = []
     step_log = []
 
-    for eps in range(NUM_EPISODES):
+    x_t = np.random.uniform(low=-0.6, high=-0.4)
+    x_t_dot = 0
+    state = [x_t, x_t_dot]
 
-        print('Episode ' + str(eps + 1), 'of', str(NUM_EPISODES))
+    mc.goal_reached = False
 
-        x_t = np.random.uniform(low=-0.6, high=-0.4)
-        x_t_dot = 0
-        state = [x_t, x_t_dot]
+    trajectory = [(x_t, x_t_dot)]
 
-        mc.goal_reached = False
+    z_theta = 0
+    z_w = 0
+    tl = 0
 
-        trajectory = [(x_t, x_t_dot)]
+    rewards = []
 
-        z_theta = 0
-        z_w = 0
-        tl = 0
+    while True:
+        # Fourier features for state
+        x_s = fourier(state_range(state, mc.state_ub, mc.state_lb), APPROXIMATION_ORDER)
 
-        rewards = []
+        # action preference
+        h_b = [policy(theta, feature_st_act(ACTS, APPROXIMATION_ORDER, NUM_OF_STATES, act, x_s)) for act in ACTS]
 
-        while True:
-            # Fourier features for state
-            x_s = fourier(state_range(state, mc.state_ub, mc.state_lb), APPROXIMATION_ORDER)
+        # policies by softmax
+        probs = softmax(h_b)
 
-            # action preference
-            h_b = [policy(theta, feature_st_act(ACTS, APPROXIMATION_ORDER, NUM_OF_STATES, act, x_s)) for act in ACTS]
+        # take action
+        action = np.random.choice(ACTS, p=probs)
+        x_s_a = feature_st_act(ACTS, APPROXIMATION_ORDER, NUM_OF_STATES, action, x_s)
 
-            # policies by softmax
-            probs = softmax(h_b)
+        next_x_t, next_x_t_dot, reward, status = mc.move(x_t, x_t_dot, action)
 
-            # take action
-            action = np.random.choice(ACTS, p=probs)
-            x_s_a = feature_st_act(ACTS, APPROXIMATION_ORDER, NUM_OF_STATES, action, x_s)
+        state_prime = [next_x_t, next_x_t_dot]
+        rewards.append(reward)
 
-            next_x_t, next_x_t_dot, reward, status = mc.move(x_t, x_t_dot, action)
+        # Fourier features for state_prime
+        x_s_prime = fourier(state_range(state_prime, mc.state_ub, mc.state_lb), APPROXIMATION_ORDER)
 
-            state_prime = [next_x_t, next_x_t_dot]
-            rewards.append(reward)
+        # eligibility vector
+        grad_sum = np.zeros_like(x_s_a)
+        for act in ACTS:
+            grad_sum += feature_st_act(ACTS, APPROXIMATION_ORDER, NUM_OF_STATES, act, x_s) * probs[ACTS.index(act)]
+        grad = x_s_a - grad_sum
+        vs_prime = state_value(w, x_s_prime)
+        if status:
+            vs_prime = 0
+        delta = reward - R_bar + vs_prime - state_value(w, x_s)
+        R_bar += alpha_r * delta
+        z_w = (lambda_w * z_w) + x_s
+        z_theta = (lambda_theta * z_theta) + grad
 
-            # Fourier features for state_prime
-            x_s_prime = fourier(state_range(state_prime, mc.state_ub, mc.state_lb), APPROXIMATION_ORDER)
+        w += alpha_w * delta * z_w
+        theta += alpha_theta * delta * z_theta
 
-            # eligibility vector
-            grad_sum = np.zeros_like(x_s_a)
-            for act in ACTS:
-                grad_sum += feature_st_act(ACTS, APPROXIMATION_ORDER, NUM_OF_STATES, act, x_s) * probs[ACTS.index(act)]
-            grad = x_s_a - grad_sum
-            vs_prime = state_value(w, x_s_prime)
-            if status:
-                vs_prime = 0
-            delta = reward - R_bar + vs_prime - state_value(w, x_s)
-            R_bar += alpha_r * delta
-            z_w = (lambda_w * z_w) + x_s
-            z_theta = (lambda_theta * z_theta) + grad
+        x_t, x_t_dot = next_x_t, next_x_t_dot
+        state = state_prime
 
-            w += alpha_w * delta * z_w
-            theta += alpha_theta * delta * z_theta
+        # keeping track of rewards, eligibility vectors, and states trajectory
+        trajectory.append((next_x_t, next_x_t_dot))
 
-            x_t, x_t_dot = next_x_t, next_x_t_dot
-            state = state_prime
+        if status:
+            print('Episode finished in ' + str(tl + 1) + ' steps')
 
-            # keeping track of rewards, eligibility vectors, and states trajectory
-            trajectory.append((next_x_t, next_x_t_dot))
+            rewards_log.append(sum(rewards))
+            step_log.append(tl + 1)
+            break
 
-            if status:
-                print('Episode finished in ' + str(tl + 1) + ' steps')
-
-                rewards_log.append(sum(rewards))
-                step_log.append(tl + 1)
-                break
-
-            tl += 1
+        tl += 1
 
     return trajectory, rewards_log, step_log
 
@@ -438,71 +434,67 @@ def actor_critic_et_cont_cont_acts(lambda_theta_mu=.8, lambda_theta_sigma=.8, la
     rewards_log = []
     step_log = []
 
-    for eps in range(NUM_EPISODES):
+    x_t = np.random.uniform(low=-0.6, high=-0.4)
+    x_t_dot = 0
+    state = [x_t, x_t_dot]
 
-        print('Episode ' + str(eps + 1), 'of', str(NUM_EPISODES))
+    mc.goal_reached = False
 
-        x_t = np.random.uniform(low=-0.6, high=-0.4)
-        x_t_dot = 0
-        state = [x_t, x_t_dot]
+    trajectory = [(x_t, x_t_dot)]
 
-        mc.goal_reached = False
+    z_theta_mu = 0
+    z_theta_sigma = 0
+    z_w = 0
+    tl = 0
 
-        trajectory = [(x_t, x_t_dot)]
+    rewards = []
 
-        z_theta_mu = 0
-        z_theta_sigma = 0
-        z_w = 0
-        tl = 0
+    while True:
+        # Fourier features for state
+        x_s = fourier(state_range(state, mc.state_ub, mc.state_lb), APPROXIMATION_ORDER)
+        mu_s_theta, sigma_s_theta = policy_cont_acts(theta_mu, theta_sigma, x_s)
 
-        rewards = []
+        # take action
+        action = truncnorm.rvs(-1, 1, mu_s_theta, sigma_s_theta)
+        next_x_t, next_x_t_dot, reward, status = mc.move(x_t, x_t_dot, action)
 
-        while True:
-            # Fourier features for state
-            x_s = fourier(state_range(state, mc.state_ub, mc.state_lb), APPROXIMATION_ORDER)
-            mu_s_theta, sigma_s_theta = policy_cont_acts(theta_mu, theta_sigma, x_s)
+        state_prime = [next_x_t, next_x_t_dot]
+        rewards.append(reward)
 
-            # take action
-            action = truncnorm.rvs(-1, 1, mu_s_theta, sigma_s_theta)
-            next_x_t, next_x_t_dot, reward, status = mc.move(x_t, x_t_dot, action)
+        # Fourier features for state_prime
+        x_s_prime = fourier(state_range(state_prime, mc.state_ub, mc.state_lb), APPROXIMATION_ORDER)
 
-            state_prime = [next_x_t, next_x_t_dot]
-            rewards.append(reward)
+        # policy gradient params
 
-            # Fourier features for state_prime
-            x_s_prime = fourier(state_range(state_prime, mc.state_ub, mc.state_lb), APPROXIMATION_ORDER)
+        grad_mu = (1/(sigma_s_theta**2)) * (action - mu_s_theta) * x_s
+        grad_theta = (((action - mu_s_theta)**2 / (sigma_s_theta**2)) - 1) * x_s
 
-            # policy gradient params
+        vs_prime = state_value(w, x_s_prime)
+        if status:
+            vs_prime = 0
+        delta = reward - R_bar + vs_prime - state_value(w, x_s)
+        R_bar += alpha_r * delta
+        z_w = (lambda_w * z_w) + x_s
+        z_theta_mu = (lambda_theta_mu * z_theta_mu) + grad_mu
+        z_theta_sigma = (lambda_theta_sigma * z_theta_sigma) + grad_theta
 
-            grad_mu = (1/(sigma_s_theta**2)) * (action - mu_s_theta) * x_s
-            grad_theta = (((action - mu_s_theta)**2 / (sigma_s_theta**2)) - 1) * x_s
+        w += alpha_w * delta * z_w
+        theta_mu += alpha_theta_mu * delta * z_theta_mu
+        theta_sigma += alpha_theta_sigma * delta * z_theta_sigma
 
-            vs_prime = state_value(w, x_s_prime)
-            if status:
-                vs_prime = 0
-            delta = reward - R_bar + vs_prime - state_value(w, x_s)
-            R_bar += alpha_r * delta
-            z_w = (lambda_w * z_w) + x_s
-            z_theta_mu = (lambda_theta_mu * z_theta_mu) + grad_mu
-            z_theta_sigma = (lambda_theta_sigma * z_theta_sigma) + grad_theta
+        x_t, x_t_dot = next_x_t, next_x_t_dot
+        state = state_prime
 
-            w += alpha_w * delta * z_w
-            theta_mu += alpha_theta_mu * delta * z_theta_mu
-            theta_sigma += alpha_theta_sigma * delta * z_theta_sigma
+        # keeping track of rewards, eligibility vectors, and states trajectory
+        trajectory.append((next_x_t, next_x_t_dot))
 
-            x_t, x_t_dot = next_x_t, next_x_t_dot
-            state = state_prime
+        if status:
+            print('Episode finished in ' + str(tl + 1) + ' steps')
 
-            # keeping track of rewards, eligibility vectors, and states trajectory
-            trajectory.append((next_x_t, next_x_t_dot))
+            rewards_log.append(sum(rewards))
+            step_log.append(tl + 1)
+            break
 
-            if status:
-                print('Episode finished in ' + str(tl + 1) + ' steps')
-
-                rewards_log.append(sum(rewards))
-                step_log.append(tl + 1)
-                break
-
-            tl += 1
+        tl += 1
 
     return trajectory, rewards_log, step_log

@@ -396,8 +396,7 @@ def actor_critic_et_cont(lambda_theta=.8, lambda_w=.8, alpha_theta=4e-6, alpha_w
             grad_sum += feature_st_act(ACTS, APPROXIMATION_ORDER, NUM_OF_STATES, act, x_s) * probs[ACTS.index(act)]
         grad = x_s_a - grad_sum
         vs_prime = state_value(w, x_s_prime)
-        if status:
-            vs_prime = 0
+
         delta = reward - R_bar + vs_prime - state_value(w, x_s)
         R_bar += alpha_r * delta
         z_w = (lambda_w * z_w) + x_s
@@ -470,8 +469,7 @@ def actor_critic_et_cont_cont_acts(lambda_theta_mu=.8, lambda_theta_sigma=.8, la
         grad_theta = (((action - mu_s_theta)**2 / (sigma_s_theta**2)) - 1) * x_s
 
         vs_prime = state_value(w, x_s_prime)
-        if status:
-            vs_prime = 0
+
         delta = reward - R_bar + vs_prime - state_value(w, x_s)
         R_bar += alpha_r * delta
         z_w = (lambda_w * z_w) + x_s
